@@ -14,6 +14,7 @@ type process interface {
 	Stdio() (io.WriteCloser, io.ReadCloser, io.ReadCloser, error)
 	Wait() error
 	ExitCode() (int, error)
+	CloseStdin()
 }
 
 func New(p process) *Process {
@@ -33,7 +34,7 @@ func (p *Process) AttachIO(attachStdin io.Reader, attachStdout, attachStderr io.
 		go func() {
 			_, _ = io.Copy(stdin, attachStdin)
 			_ = stdin.Close()
-			// p.process.CloseStdin()
+			p.process.CloseStdin()
 			wg.Done()
 		}()
 	} else {

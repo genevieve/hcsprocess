@@ -52,12 +52,27 @@ var _ = Describe("Process", func() {
 			Eventually(attachedStderr).Should(gbytes.Say("something-on-stderr"))
 		})
 
-		// It("closes the process' stdin pipe after copying", func() {
-		// 	exitCode, err := wrappedProcess.AttachIO(attachedStdin, nil, nil)
-		// 	Expect(err).NotTo(HaveOccurred())
-		// 	Expect(exitCode).To(Equal(0))
-		// 	Eventually(processStdin).Should(gbytes.Say("something-on-stdin"))
-		// 	Expect(fakeProcess.CloseStdinCallCount()).To(Equal(1))
-		// })
+		It("closes the process' stdin pipe after copying", func() {
+			exitCode, err := wrappedProcess.AttachIO(attachedStdin, nil, nil)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(exitCode).To(Equal(0))
+
+			Expect(fakeProcess.CloseStdinCall.CallCount).To(Equal(1))
+
+			Eventually(processStdin).Should(gbytes.Say("something-on-stdin"))
+		})
+
+		Context("when io.Copy is blocking", func() {
+			BeforeEach(func() {
+				fakeProcess.StdioCall.Returns.Stdin = processStdin
+			})
+			It("exits after 5 seconds", func() {
+				exitCode, err := wrappedProcess.AttachIO(attachedStdin, nil, nil)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(exitCode).To(Equal(0))
+
+				Expect(fakeProcess.CloseStdinCall.CallCount).To(Equal(1))
+			})
+		})
 	})
 })

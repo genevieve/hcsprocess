@@ -11,6 +11,9 @@ type Process struct {
 			Error  error
 		}
 	}
+	CloseStdinCall struct {
+		CallCount int
+	}
 }
 
 func (p *Process) Stdio() (io.WriteCloser, io.ReadCloser, io.ReadCloser, error) {
@@ -23,4 +26,8 @@ func (p *Process) Wait() error {
 
 func (p *Process) ExitCode() (int, error) {
 	return 0, nil
+}
+
+func (p *Process) CloseStdin() {
+	p.CloseStdinCall.CallCount++
 }
