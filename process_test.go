@@ -57,21 +57,30 @@ var _ = Describe("Process", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(exitCode).To(Equal(0))
 
-			Expect(fakeProcess.CloseStdinCall.CallCount).To(Equal(1))
-
 			Eventually(processStdin).Should(gbytes.Say("something-on-stdin"))
+			Expect(fakeProcess.CloseStdinCall.CallCount).To(Equal(1))
 		})
 
-		Context("when io.Copy is blocking", func() {
-			BeforeEach(func() {
-				fakeProcess.StdioCall.Returns.Stdin = processStdin
-			})
-			It("exits after 5 seconds", func() {
-				exitCode, err := wrappedProcess.AttachIO(attachedStdin, nil, nil)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(exitCode).To(Equal(0))
+		Context("when stdout and stderr are done, but attached stdin is blocking", func() {
+			var neverendingAttachedStdin *fakes.Reader
 
-				Expect(fakeProcess.CloseStdinCall.CallCount).To(Equal(1))
+			BeforeEach(func() {
+				neverendingAttachedStdin = &fakes.Reader{}
+			})
+
+			It("should exit before the 5 second timeout", func() {
+				code := make(chan int)
+				go func() {
+					exitCode, err := wrappedProcess.AttachIO(neverendingAttachedStdin, attachedStdout, attachedStderr)
+					Expect(err).NotTo(HaveOccurred())
+					code <- exitCode
+				}()
+
+				// AttachIO should exit within 1 second because stdout & sdtderr are done.
+				Eventually(code).Should(Receive(Equal(0), "AttachIO didn't exit."))
+
+				Expect(attachedStdout).To(gbytes.Say("something-on-stdout"))
+				Expect(attachedStderr).To(gbytes.Say("something-on-stderr"))
 			})
 		})
 	})

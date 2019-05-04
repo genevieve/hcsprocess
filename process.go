@@ -30,42 +30,39 @@ func (p *Process) AttachIO(attachStdin io.Reader, attachStdout, attachStderr io.
 	var wg sync.WaitGroup
 
 	if attachStdin != nil {
-		wg.Add(1)
 		go func() {
-			_, _ = io.Copy(stdin, attachStdin)
-			_ = stdin.Close()
-			p.process.CloseStdin()
-			wg.Done()
+			io.Copy(stdin, attachStdin)
+			stdin.Close()
 		}()
 	} else {
-		_ = stdin.Close()
-		// p.process.CloseStdin()
+		stdin.Close()
 	}
 
 	if attachStdout != nil {
 		wg.Add(1)
 		go func() {
-			_, _ = io.Copy(attachStdout, stdout)
-			_ = stdout.Close()
+			io.Copy(attachStdout, stdout)
+			stdout.Close()
 			wg.Done()
 		}()
 	} else {
-		_ = stdout.Close()
+		stdout.Close()
 	}
 
 	if attachStderr != nil {
 		wg.Add(1)
 		go func() {
-			_, _ = io.Copy(attachStderr, stderr)
-			_ = stderr.Close()
+			io.Copy(attachStderr, stderr)
+			stderr.Close()
 			wg.Done()
 		}()
 	} else {
-		_ = stderr.Close()
+		stderr.Close()
 	}
 
 	err = p.process.Wait()
-	waitWithTimeout(&wg, 1*time.Second)
+	p.process.CloseStdin()
+	waitWithTimeout(&wg, 5*time.Second)
 	if err != nil {
 		return -1, err
 	}
